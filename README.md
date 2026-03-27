@@ -9,6 +9,29 @@ Small macOS CLI to read a file’s origin URL(s) from Spotlight metadata (`kMDIt
 - Handles multiple files
 - Unix-friendly output (stdout for data, stderr for errors)
 
+## Install
+
+### Homebrew
+
+```bash
+brew tap joshleaves/tap
+brew install wherefrom
+```
+
+### Manual
+
+Download the appropriate binary from the [GitHub Releases page](https://github.com/joshleaves/wherefrom/releases/):
+
+- `wherefrom-aarch64-apple-darwin` (Apple Silicon)
+- `wherefrom-x86_64-apple-darwin` (Intel)
+
+Then make it executable and move it to your `$PATH`:
+
+```bash
+chmod +x wherefrom-*
+mv wherefrom-* /usr/local/bin/wherefrom
+```
+
 ## Usage
 
 ```bash
