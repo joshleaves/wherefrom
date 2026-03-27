@@ -1,0 +1,30 @@
+[package]
+name = "wherefrom"
+version = "0.1.0"
+edition = "2024"
+authors = ["Arnaud 'red' Rouyer"]
+
+[[bin]]
+name = "wherefrom"
+path = "src/main.rs"
+doc = false
+doctest = false
+test = false
+
+[profile.dev]
+opt-level = 1
+
+[profile.test]
+opt-level = 2
+
+[profile.release]
+opt-level = 3
+strip = true
+panic = "abort"
+lto = true
+codegen-units = 1
+
+[dependencies]
+argh = "0.1.19"
+objc2-core-foundation = { version = "0.3.2" }
+mdquery-rs = "0.2.1"
