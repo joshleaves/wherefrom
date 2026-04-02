@@ -35,7 +35,7 @@ mv wherefrom-* /usr/local/bin/wherefrom
 ## Usage
 
 ```bash
-wherefrom <file> [file...]
+wherefrom [--all] file ...
 ```
 
 ### Examples
@@ -52,6 +52,18 @@ Print all origins:
 wherefrom --all video.mp4
 ```
 
+Show help:
+
+```bash
+wherefrom --help
+```
+
+Show version:
+
+```bash
+wherefrom --version
+```
+
 Multiple files:
 
 ```bash
@@ -66,6 +78,12 @@ wherefrom a.mp4 b.jpg
 - **Multiple files**: `filename: origin`
 - If no origin is found: no output for that file
 - Errors are printed to stderr
+
+## Options
+
+- `-a`, `--all`: print all recorded origins
+- `-h`, `--help`: display help and exit
+- `-v`, `--version`: display version and exit
 
 ## Notes
 
