@@ -18,12 +18,15 @@ pub fn wherefrom_origins(origins: &CFArray) -> Vec<String> {
 mod tests {
   use super::wherefrom_origins;
   use objc2_core_foundation::{CFArray, CFString, CFType};
+  use uuid::Uuid;
 
   #[test]
   fn skips_non_string_values() {
-    let first = CFString::from_str("https://example.com/one");
+    let first_value = format!("https://example.com/{}", Uuid::new_v4());
+    let second_value = format!("https://example.com/{}", Uuid::new_v4());
+    let first = CFString::from_str(&first_value);
     let not_a_string = CFArray::<CFType>::empty();
-    let second = CFString::from_str("https://example.com/two");
+    let second = CFString::from_str(&second_value);
 
     let values: [&CFType; 3] = [
       first.as_ref(),
@@ -35,8 +38,8 @@ mod tests {
     assert_eq!(
       wherefrom_origins(origins.as_opaque()),
       vec![
-        String::from("https://example.com/one"),
-        String::from("https://example.com/two"),
+        first_value,
+        second_value,
       ]
     );
   }

@@ -35,7 +35,7 @@ mv wherefrom-* /usr/local/bin/wherefrom
 ## Usage
 
 ```bash
-wherefrom [--all] [--print0] file ...
+wherefrom [--all] [--print0|--jsonl] file ...
 ```
 
 ### Examples
@@ -78,6 +78,14 @@ Machine-readable output (`NUL` delimited):
 wherefrom --print0 a.mp4 b.jpg
 ```
 
+Machine-readable output (JSON Lines):
+
+```bash
+wherefrom --jsonl a.mp4 b.jpg
+# {"file":"a.mp4","origin":"https://..."}
+# {"file":"b.jpg","origin":"https://..."}
+```
+
 ## Output
 
 - **Single file**: prints the first origin only
@@ -92,6 +100,8 @@ wherefrom --print0 a.mp4 b.jpg
 - `--print0`: print machine-readable NUL-delimited output
   - single file mode: `origin\0`
   - multi-file mode: repeated `path\0origin\0`
+- `--jsonl`: print machine-readable JSON Lines output
+  - one JSON object per origin: `{"file":"...","origin":"..."}`
 - `-h`, `--help`: display help and exit
 - `-v`, `--version`: display version and exit
 

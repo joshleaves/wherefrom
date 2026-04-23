@@ -7,6 +7,8 @@ pub struct CliArgs {
   pub all: bool,
   /// Whether output should be NUL-delimited for machine parsing.
   pub print0: bool,
+  /// Whether output should be JSON Lines for machine parsing.
+  pub jsonl: bool,
   /// Input files to inspect.
   pub files: Vec<PathBuf>,
 }
@@ -24,14 +26,15 @@ pub enum ParseOutcome {
 
 /// Parses `wherefrom` command-line arguments.
 ///
-/// Supports `-a`/`--all`, `--print0`, `-h`/`--help`, `-v`/`--version`, and
-/// `--` to stop option parsing.
+/// Supports `-a`/`--all`, `--print0`, `--jsonl`, `-h`/`--help`,
+/// `-v`/`--version`, and `--` to stop option parsing.
 ///
 /// Returns an error string formatted for direct display on stderr when parsing
 /// fails.
 pub fn parse_args(args: impl IntoIterator<Item = String>) -> Result<ParseOutcome, String> {
   let mut all = false;
   let mut print0 = false;
+  let mut jsonl = false;
   let mut files = Vec::new();
   let mut parsing_options = true;
 
@@ -55,6 +58,10 @@ pub fn parse_args(args: impl IntoIterator<Item = String>) -> Result<ParseOutcome
         print0 = true;
         continue;
       }
+      if arg == "--jsonl" {
+        jsonl = true;
+        continue;
+      }
       if arg.starts_with('-') {
         return Err(format!("wherefrom: unrecognized option '{}'", arg));
       }
@@ -66,21 +73,32 @@ pub fn parse_args(args: impl IntoIterator<Item = String>) -> Result<ParseOutcome
   if files.is_empty() {
     return Err("wherefrom: missing file operand".to_string());
   }
+  if print0 && jsonl {
+    return Err("wherefrom: options '--print0' and '--jsonl' are mutually exclusive".to_string());
+  }
 
-  Ok(ParseOutcome::Run(CliArgs { all, print0, files }))
+  Ok(ParseOutcome::Run(CliArgs {
+    all,
+    print0,
+    jsonl,
+    files,
+  }))
 }
 
 #[cfg(test)]
 mod tests {
   use super::{ParseOutcome, parse_args};
   use std::path::PathBuf;
+  use uuid::Uuid;
 
   #[test]
   fn parses_all_and_files() {
+    let file_a = format!("{}.jpg", Uuid::new_v4());
+    let file_b = format!("{}.png", Uuid::new_v4());
     let result = parse_args([
       String::from("--all"),
-      String::from("a.jpg"),
-      String::from("b.png"),
+      file_a.clone(),
+      file_b.clone(),
     ])
     .unwrap();
 
@@ -90,20 +108,22 @@ mod tests {
 
     assert!(args.all);
     assert!(!args.print0);
+    assert!(!args.jsonl);
     assert_eq!(
       args.files,
       vec![
-        PathBuf::from("a.jpg"),
-        PathBuf::from("b.png")
+        PathBuf::from(file_a),
+        PathBuf::from(file_b)
       ]
     );
   }
 
   #[test]
   fn parses_short_all_flag() {
+    let file = format!("{}.jpg", Uuid::new_v4());
     let result = parse_args([
       String::from("-a"),
-      String::from("a.jpg"),
+      file.clone(),
     ])
     .unwrap();
 
@@ -113,12 +133,8 @@ mod tests {
 
     assert!(args.all);
     assert!(!args.print0);
-    assert_eq!(
-      args.files,
-      vec![PathBuf::from(
-        "a.jpg"
-      )]
-    );
+    assert!(!args.jsonl);
+    assert_eq!(args.files, vec![PathBuf::from(file)]);
   }
 
   #[test]
@@ -147,9 +163,10 @@ mod tests {
 
   #[test]
   fn stops_parsing_options_after_double_dash() {
+    let value = format!("--{}.jpg", Uuid::new_v4());
     let result = parse_args([
       String::from("--"),
-      String::from("--file.jpg"),
+      value.clone(),
     ])
     .unwrap();
 
@@ -159,12 +176,8 @@ mod tests {
 
     assert!(!args.all);
     assert!(!args.print0);
-    assert_eq!(
-      args.files,
-      vec![PathBuf::from(
-        "--file.jpg"
-      )]
-    );
+    assert!(!args.jsonl);
+    assert_eq!(args.files, vec![PathBuf::from(value)]);
   }
 
   #[test]
@@ -184,9 +197,10 @@ mod tests {
 
   #[test]
   fn parses_print0() {
+    let file = format!("{}.jpg", Uuid::new_v4());
     let result = parse_args([
       String::from("--print0"),
-      String::from("a.jpg"),
+      file.clone(),
     ])
     .unwrap();
 
@@ -196,11 +210,40 @@ mod tests {
 
     assert!(!args.all);
     assert!(args.print0);
+    assert!(!args.jsonl);
+    assert_eq!(args.files, vec![PathBuf::from(file)]);
+  }
+
+  #[test]
+  fn parses_jsonl() {
+    let file = format!("{}.jpg", Uuid::new_v4());
+    let result = parse_args([
+      String::from("--jsonl"),
+      file.clone(),
+    ])
+    .unwrap();
+
+    let ParseOutcome::Run(args) = result else {
+      panic!("expected run outcome");
+    };
+
+    assert!(!args.all);
+    assert!(!args.print0);
+    assert!(args.jsonl);
+    assert_eq!(args.files, vec![PathBuf::from(file)]);
+  }
+
+  #[test]
+  fn rejects_conflicting_machine_formats() {
+    let result = parse_args([
+      String::from("--print0"),
+      String::from("--jsonl"),
+      format!("{}.jpg", Uuid::new_v4()),
+    ])
+    .unwrap_err();
     assert_eq!(
-      args.files,
-      vec![PathBuf::from(
-        "a.jpg"
-      )]
+      result,
+      "wherefrom: options '--print0' and '--jsonl' are mutually exclusive"
     );
   }
 }
