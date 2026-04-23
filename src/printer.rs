@@ -1,4 +1,5 @@
 use objc2_core_foundation::CFIndex;
+use std::os::unix::ffi::OsStrExt;
 use std::path::Path;
 
 /// Returns the number of origins to print for a file.
@@ -18,9 +19,30 @@ pub fn format_result(single_file: bool, file: &Path, origin: &str) -> String {
   }
 }
 
+/// Formats one output record for `--print0`.
+///
+/// Single-file mode emits `origin\0`.
+/// Multi-file mode emits `path\0origin\0`.
+pub fn format_result_print0(single_file: bool, file: &Path, origin: &str) -> Vec<u8> {
+  if single_file {
+    let mut out = Vec::with_capacity(origin.len() + 1);
+    out.extend_from_slice(origin.as_bytes());
+    out.push(0);
+    out
+  } else {
+    let path = file.as_os_str().as_bytes();
+    let mut out = Vec::with_capacity(path.len() + origin.len() + 2);
+    out.extend_from_slice(path);
+    out.push(0);
+    out.extend_from_slice(origin.as_bytes());
+    out.push(0);
+    out
+  }
+}
+
 #[cfg(test)]
 mod tests {
-  use super::{format_result, origin_limit};
+  use super::{format_result, format_result_print0, origin_limit};
   use std::path::Path;
 
   #[test]
@@ -52,6 +74,26 @@ mod tests {
     assert_eq!(
       format_result(false, Path::new("video.mp4"), "https://example.com/video"),
       "video.mp4: https://example.com/video"
+    );
+  }
+
+  #[test]
+  fn formats_print0_single_file_as_nul_terminated_origin() {
+    assert_eq!(
+      format_result_print0(true, Path::new("ignored.mp4"), "https://example.com/video"),
+      b"https://example.com/video\0"
+    );
+  }
+
+  #[test]
+  fn formats_print0_multi_file_as_path_nul_origin_nul() {
+    assert_eq!(
+      format_result_print0(
+        false,
+        Path::new("video:\nclip.mp4"),
+        "https://example.com/a:b"
+      ),
+      b"video:\nclip.mp4\0https://example.com/a:b\0"
     );
   }
 }

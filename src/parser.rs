@@ -5,6 +5,8 @@ use std::path::PathBuf;
 pub struct CliArgs {
   /// Whether all recorded origins should be printed.
   pub all: bool,
+  /// Whether output should be NUL-delimited for machine parsing.
+  pub print0: bool,
   /// Input files to inspect.
   pub files: Vec<PathBuf>,
 }
@@ -22,13 +24,14 @@ pub enum ParseOutcome {
 
 /// Parses `wherefrom` command-line arguments.
 ///
-/// Supports `-a`/`--all`, `-h`/`--help`, `-v`/`--version`, and `--` to stop
-/// option parsing.
+/// Supports `-a`/`--all`, `--print0`, `-h`/`--help`, `-v`/`--version`, and
+/// `--` to stop option parsing.
 ///
 /// Returns an error string formatted for direct display on stderr when parsing
 /// fails.
 pub fn parse_args(args: impl IntoIterator<Item = String>) -> Result<ParseOutcome, String> {
   let mut all = false;
+  let mut print0 = false;
   let mut files = Vec::new();
   let mut parsing_options = true;
 
@@ -48,6 +51,10 @@ pub fn parse_args(args: impl IntoIterator<Item = String>) -> Result<ParseOutcome
         all = true;
         continue;
       }
+      if arg == "--print0" {
+        print0 = true;
+        continue;
+      }
       if arg.starts_with('-') {
         return Err(format!("wherefrom: unrecognized option '{}'", arg));
       }
@@ -60,7 +67,7 @@ pub fn parse_args(args: impl IntoIterator<Item = String>) -> Result<ParseOutcome
     return Err("wherefrom: missing file operand".to_string());
   }
 
-  Ok(ParseOutcome::Run(CliArgs { all, files }))
+  Ok(ParseOutcome::Run(CliArgs { all, print0, files }))
 }
 
 #[cfg(test)]
@@ -82,6 +89,7 @@ mod tests {
     };
 
     assert!(args.all);
+    assert!(!args.print0);
     assert_eq!(
       args.files,
       vec![
@@ -104,6 +112,7 @@ mod tests {
     };
 
     assert!(args.all);
+    assert!(!args.print0);
     assert_eq!(
       args.files,
       vec![PathBuf::from(
@@ -149,6 +158,7 @@ mod tests {
     };
 
     assert!(!args.all);
+    assert!(!args.print0);
     assert_eq!(
       args.files,
       vec![PathBuf::from(
@@ -170,5 +180,27 @@ mod tests {
   fn requires_at_least_one_file() {
     let result = parse_args(Vec::<String>::new()).unwrap_err();
     assert_eq!(result, "wherefrom: missing file operand");
+  }
+
+  #[test]
+  fn parses_print0() {
+    let result = parse_args([
+      String::from("--print0"),
+      String::from("a.jpg"),
+    ])
+    .unwrap();
+
+    let ParseOutcome::Run(args) = result else {
+      panic!("expected run outcome");
+    };
+
+    assert!(!args.all);
+    assert!(args.print0);
+    assert_eq!(
+      args.files,
+      vec![PathBuf::from(
+        "a.jpg"
+      )]
+    );
   }
 }

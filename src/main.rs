@@ -1,19 +1,21 @@
 use mdquery_rs::MDItem;
 use objc2_core_foundation::CFArray;
+use std::io::{self, Write};
 use wherefrom::{
   origins::wherefrom_origins,
   parser::{ParseOutcome, parse_args},
-  printer::{format_result, origin_limit},
+  printer::{format_result, format_result_print0, origin_limit},
 };
 
 fn usage(exit_code: i32) -> ! {
   let output = "\
-usage: wherefrom [--all] file ...
+usage: wherefrom [--all] [--print0] file ...
 
 Display file origin URL(s) from Spotlight metadata.
 
 Options:
   -a, --all     display all origins
+      --print0  print machine-readable NUL-delimited records
   -h, --help    display this help and exit
   -v, --version display version";
 
@@ -46,6 +48,7 @@ fn main() {
 
   let mut had_error: bool = false;
   let single_file = args.files.len() == 1;
+  let mut stdout = io::stdout().lock();
 
   for file in &args.files {
     let md = match MDItem::from_path(file.as_path()) {
@@ -65,9 +68,26 @@ fn main() {
     let limit = origin_limit(origins.len() as isize, args.all) as usize;
 
     for origin in origins.into_iter().take(limit) {
-      println!("{}", format_result(single_file, file, &origin));
+      if args.print0 {
+        let payload = format_result_print0(single_file, file, &origin);
+        if let Err(e) = stdout.write_all(&payload) {
+          eprintln!("wherefrom: failed to write output: {}", e);
+          had_error = true;
+          break;
+        }
+      } else if let Err(e) = writeln!(stdout, "{}", format_result(single_file, file, &origin)) {
+        eprintln!("wherefrom: failed to write output: {}", e);
+        had_error = true;
+        break;
+      }
     }
   }
+
+  if let Err(e) = stdout.flush() {
+    eprintln!("wherefrom: failed to flush output: {}", e);
+    had_error = true;
+  }
+
   if had_error {
     std::process::exit(1);
   }

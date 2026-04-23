@@ -35,7 +35,7 @@ mv wherefrom-* /usr/local/bin/wherefrom
 ## Usage
 
 ```bash
-wherefrom [--all] file ...
+wherefrom [--all] [--print0] file ...
 ```
 
 ### Examples
@@ -72,16 +72,26 @@ wherefrom a.mp4 b.jpg
 # b.jpg: https://...
 ```
 
+Machine-readable output (`NUL` delimited):
+
+```bash
+wherefrom --print0 a.mp4 b.jpg
+```
+
 ## Output
 
 - **Single file**: prints the first origin only
 - **Multiple files**: `filename: origin`
 - If no origin is found: no output for that file
 - Errors are printed to stderr
+- This default output is human-oriented, so unusual filenames can look ambiguous
 
 ## Options
 
 - `-a`, `--all`: print all recorded origins
+- `--print0`: print machine-readable NUL-delimited output
+  - single file mode: `origin\0`
+  - multi-file mode: repeated `path\0origin\0`
 - `-h`, `--help`: display help and exit
 - `-v`, `--version`: display version and exit
 

@@ -25,7 +25,11 @@ mod tests {
     let not_a_string = CFArray::<CFType>::empty();
     let second = CFString::from_str("https://example.com/two");
 
-    let values: [&CFType; 3] = [first.as_ref(), not_a_string.as_ref(), second.as_ref()];
+    let values: [&CFType; 3] = [
+      first.as_ref(),
+      not_a_string.as_ref(),
+      second.as_ref(),
+    ];
     let origins = CFArray::<CFType>::from_objects(&values);
 
     assert_eq!(
