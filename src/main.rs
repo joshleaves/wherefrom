@@ -1,6 +1,7 @@
 use mdquery_rs::MDItem;
-use objc2_core_foundation::{CFArray, CFString};
+use objc2_core_foundation::CFArray;
 use wherefrom::{
+  origins::wherefrom_origins,
   parser::{ParseOutcome, parse_args},
   printer::{format_result, origin_limit},
 };
@@ -60,15 +61,10 @@ fn main() {
       Some(origins) => origins,
     };
 
-    let total = CFArray::count(&origins);
-    let limit = origin_limit(total, args.all);
+    let origins = wherefrom_origins(&origins);
+    let limit = origin_limit(origins.len() as isize, args.all) as usize;
 
-    for i in 0..limit {
-      let value = unsafe { origins.value_at_index(i) };
-      if value.is_null() {
-        continue;
-      }
-      let origin = unsafe { (&*(value as *const CFString)).to_string() };
+    for origin in origins.into_iter().take(limit) {
       println!("{}", format_result(single_file, file, &origin));
     }
   }
