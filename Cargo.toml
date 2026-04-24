@@ -27,7 +27,7 @@ panic = "abort"
 lto = true
 codegen-units = 1
 
-[dependencies]
+[target.'cfg(target_os = "macos")'.dependencies]
 objc2-core-foundation = "0.3.2"
 mdquery-rs = "0.2.1"
 serde_json = "1.0"

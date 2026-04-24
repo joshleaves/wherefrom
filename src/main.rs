@@ -1,3 +1,6 @@
+#[cfg(not(target_os = "macos"))]
+compile_error!("only macos is supported");
+
 use mdquery_rs::MDItem;
 use objc2_core_foundation::CFArray;
 use std::io::{self, ErrorKind};
