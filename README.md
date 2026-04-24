@@ -116,6 +116,53 @@ wherefrom --jsonl a.mp4 b.jpg
 cargo build --release
 ```
 
+## Local Hooks
+
+This repository currently uses the following local Git hook:
+- `.git/config`
+```
+[hook "lint"]
+        event = pre-commit
+        command = cargo fmt --check >/dev/null 2>&1
+[hook "clippy"]
+        event = pre-commit
+        command = cargo clippy --all-targets -- -D warnings -D clippy::all >/dev/null 2>&1
+```
+- `.git/hooks/pre-push`
+
+```bash
+#!/bin/sh
+set -eu
+
+# Git pre-push args:
+#   $1 = remote name
+#   $2 = remote URL
+# Stdin lines:
+#   <local-ref> <local-oid> <remote-ref> <remote-oid>
+
+run_checks=0
+
+while IFS=' ' read -r local_ref local_oid remote_ref remote_oid; do
+  [ -n "${local_ref:-}" ] || continue
+
+  case "$local_ref" in
+    refs/tags/v*)
+      # Ignore tag deletion (all-zero local oid)
+      case "$local_oid" in
+        0000000000000000000000000000000000000000) ;;
+        *) run_checks=1 ;;
+      esac
+      ;;
+  esac
+done
+
+if [ "$run_checks" -eq 1 ]; then
+  cargo test --test integration_spotlight -- --ignored
+fi
+
+exit 0
+```
+
 ## License
 
 MIT
