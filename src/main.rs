@@ -1,6 +1,6 @@
 use mdquery_rs::MDItem;
 use objc2_core_foundation::CFArray;
-use std::io;
+use std::io::{self, ErrorKind};
 use std::process::ExitCode;
 use wherefrom::{
   origins::wherefrom_origins,
@@ -81,6 +81,9 @@ fn main() -> ExitCode {
 
     for origin in origins.into_iter().take(limit) {
       if let Err(e) = strategy.write(&mut stdout, file, &origin) {
+        if e.kind() == ErrorKind::BrokenPipe {
+          return ExitCode::SUCCESS;
+        }
         eprintln!("wherefrom: failed to write output: {}", e);
         had_error = true;
         break;

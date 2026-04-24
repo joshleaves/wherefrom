@@ -102,6 +102,8 @@ wherefrom --jsonl a.mp4 b.jpg
   - multi-file mode: repeated `path\0origin\0`
 - `--jsonl`: print machine-readable JSON Lines output
   - one JSON object per origin: `{"file":"...","origin":"..."}`
+  - `file` is emitted as UTF-8 text; non-UTF-8 path bytes are lossy-normalized
+    (same behavior as Rust `to_string_lossy()`)
 - `-h`, `--help`: display help and exit
 - `-v`, `--version`: display version and exit
 
