@@ -155,4 +155,51 @@ mod tests {
     assert_eq!(value["file"], filename);
     assert_eq!(value["origin"], origin);
   }
+
+  #[test]
+  fn writes_human_output() {
+    let filename = format!("{}:\n{}.mp4", Uuid::new_v4(), Uuid::new_v4());
+    let origin = format!("https://example.com/{}:{}", Uuid::new_v4(), Uuid::new_v4());
+    let path = Path::new(&filename);
+
+    let mut human_single = Vec::new();
+    OutputStrategy::Human(OutputScope::SingleFile)
+      .write(&mut human_single, path, &origin)
+      .unwrap();
+    assert_eq!(human_single, format!("{}\n", origin).into_bytes());
+
+    let mut human_multi = Vec::new();
+    OutputStrategy::Human(OutputScope::MultiFile)
+      .write(&mut human_multi, path, &origin)
+      .unwrap();
+    assert_eq!(
+      human_multi,
+      format!("{}: {}\n", filename, origin).into_bytes()
+    );
+  }
+
+  #[test]
+  fn writes_print0_output() {
+    let filename = format!("{}:\n{}.mp4", Uuid::new_v4(), Uuid::new_v4());
+    let origin = format!("https://example.com/{}:{}", Uuid::new_v4(), Uuid::new_v4());
+    let path = Path::new(&filename);
+
+    let mut print0_single = Vec::new();
+    OutputStrategy::Print0(OutputScope::SingleFile)
+      .write(&mut print0_single, path, &origin)
+      .unwrap();
+    let mut expected_single = origin.as_bytes().to_vec();
+    expected_single.push(0);
+    assert_eq!(print0_single, expected_single);
+
+    let mut print0_multi = Vec::new();
+    OutputStrategy::Print0(OutputScope::MultiFile)
+      .write(&mut print0_multi, path, &origin)
+      .unwrap();
+    let mut expected_multi = filename.as_bytes().to_vec();
+    expected_multi.push(0);
+    expected_multi.extend_from_slice(origin.as_bytes());
+    expected_multi.push(0);
+    assert_eq!(print0_multi, expected_multi);
+  }
 }
